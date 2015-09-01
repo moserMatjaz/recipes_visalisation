@@ -1,0 +1,503 @@
+// INDEXES
+
+	CREATE INDEX ON :AREA(name);
+	CREATE INDEX ON :AREA(ID);
+
+	CREATE INDEX ON :INGREDIENT(name);
+	CREATE INDEX ON :INGREDIENT(ID);
+
+	CREATE INDEX ON :CUISINE(name);
+	CREATE INDEX ON :CUISINE(ID);
+	CREATE INDEX ON :CUISINE(scope);
+
+	CREATE INDEX ON :INGREDIENT_CATEGORY(name);
+	CREATE INDEX ON :INGREDIENT_CATEGORY(ID);
+
+	CREATE INDEX ON :RECIPE(ID);
+	CREATE INDEX ON :RECIPE(source);
+	CREATE INDEX ON :RECIPE(cuisine);
+
+	CREATE INDEX ON :COMPOUND(name);
+	CREATE INDEX ON :COMPOUND(ID);
+
+// 1 --------> CREATE NODES
+
+	// ingredient categories
+
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/INGREDIENT_CATEGORY.csv" AS csvLine
+	CREATE (ingred_cat:INGREDIENT_CATEGORY { ID:toInt(csvLine.id), name:csvLine.name});
+
+	// ingredients
+
+	USING PERIODIC COMMIT 100
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/INGREDIENT.csv" AS csvLine
+	CREATE (ingred:INGREDIENT { ID:toInt(csvLine.id), name:csvLine.name});
+
+	// compounds
+
+	USING PERIODIC COMMIT 100
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/COMPOUND.csv" AS csvLine
+	CREATE (comp:COMPOUND{ID:toInt(csvLine.id),name:csvLine.name});
+
+	//cuisines
+
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/CUISINE.csv" AS csvLine
+	CREATE(cuis:CUISINE {ID:toInt(csvLine.id), name:csvLine.name, scope:csvLine.scope});
+
+	//recipes
+
+	USING PERIODIC COMMIT 1000
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/RECIPES.csv" AS csvLine
+	CREATE(rec:RECIPE {ID:toInt(csvLine.id), source:csvLine.source, cuisine:csvLine.cuisine});
+
+	//areas
+
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/AREA.csv" AS csvLine
+	CREATE (ar:AREA{ID:toInt(csvLine.id),name:csvLine.name});
+
+// 2 --------> CREATING REALTIONSHIPS 
+
+	//compound part of ingredient
+ 
+ 	USING PERIODIC COMMIT 1000
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/ingred_has_compound.csv" AS csvLine
+	MERGE(comp:COMPOUND{ID:toInt(csvLine.compound_id)})
+	MERGE(ingred:INGREDIENT{ID:toInt(csvLine.ingredient_id)})
+	CREATE(comp)-[:PART_OF]->(ingred)
+
+	// ingredient BELONGS TO category
+
+	USING PERIODIC COMMIT 1000
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/ingred_belongsto_ingredcat.csv" AS csvLine
+	MERGE (ingred:INGREDIENT { name:csvLine.ingredient_name})
+	MERGE (ingred_cat:INGREDIENT_CATEGORY {name:csvLine.ingredientcategory_name})
+	CREATE (ingred)-[:BELONGS_TO]->(ingred_cat)
+
+	// ingredient IS PART OF recipe
+
+	USING PERIODIC COMMIT 1000
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/ingred_partof_recipe.csv" AS csvLine
+	MERGE (ingred:INGREDIENT {name:csvLine.ingredient_name})
+	MERGE (rec:RECIPE {ID:toInt(csvLine.recipe_id)})
+	CREATE (ingred)-[:IS_PART_OF]->(rec)
+
+	// cuisine ORIGINATES FROM area
+
+	USING PERIODIC COMMIT 1000
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/cuisine_locatedin_area.csv" AS csvLine
+	MERGE(cuis:CUISINE{name:csvLine.cuisine_name})
+	MERGE(ar:AREA {name:csvLine.area_name})
+	CREATE (cuis)-[:ORIGINATES_FROM]->(ar)
+
+	// recipe IS FROM cuisine
+
+	USING PERIODIC COMMIT 1000
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/RECIPES.csv" AS csvLine
+	MERGE(cuis:CUISINE{name:csvLine.cuisine})
+	MERGE (rec:RECIPE {ID:toInt(csvLine.id)})
+	CREATE (rec)-[:IS_FROM ]->(cuis)
+
+	// adding similarities to cuisines
+
+	USING PERIODIC COMMIT 1000
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/cuisines_similarities.csv" AS csvLine
+	MERGE(cuis_source:CUISINE{name:csvLine.source})
+	MERGE(cuis_target:CUISINE{name:csvLine.target})
+	CREATE (cuis_source)-[:SIMILIARITY {value:toFloat(csvLine.value)}]->(cuis_target)
+
+
+// 3 --------> QUERRYING THE DATABASE (from the blog)
+
+	//number of nodes (descending order)
+	MATCH (n) RETURN DISTINCT labels(n) AS NODE_TYPE, count(n) AS Number
+	ORDER by Number DESC;
+ 
+	// relationships and types of them
+	MATCH (a)-[r]->(b)
+	RETURN DISTINCT head(labels(a)) AS This, type(r) AS To, head(labels(b)) AS That
+	LIMIT 100;
+	 
+	//number of recepies in different areas 
+	MATCH (area:AREA)<-[:LOCATED_IN]-(cuisine:CUISINE)<-[:OF_CUISINE]-(recipe:RECIPE)
+	RETURN area.name AS Area, count(DISTINCT recipe) AS NumberOfRecipes
+	ORDER BY NumberOfRecipes DESC;
+	 
+	//occurences of ingredient categories in recepis (count the number of occurances)
+	MATCH (recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
+	RETURN ingredcat.name AS Category, count(DISTINCT recipe) AS Recipes
+	ORDER BY Recipes DESC;
+	 
+	//areas and how many recepies use ingedinets from ingredient categories
+	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
+	WITH recipe, area
+	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
+	RETURN area.name AS Area, ingredcat.name AS IngredientCategory, count(DISTINCT recipe) AS NumberOfRecipes
+	ORDER BY NumberOfRecipes DESC;
+
+	//what are the top 10 ingredient categories used in a Western Europe
+	MATCH (area:AREA {name:"WesternEuropean"})<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
+	WITH recipe, area
+	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
+	RETURN area.name AS Area, ingredcat.name AS Ingredient, count(DISTINCT recipe) AS NumberOfRecipes
+	ORDER BY Area ASC, NumberOfRecipes DESC;
+	 
+	//How many recipes do we have for Belgian cuisine
+	MATCH (cuisine:CUISINE {name:"Belgium"})<-[:IS_FROM]-(recipe:RECIPE) return count(recipe);
+
+	//How many recipes do we have for Dutch cuisine
+	MATCH (cuisine:CUISINE {name:"Netherlands"})<-[:IS_FROM]-(recipe:RECIPE) return count(recipe)
+	 
+	//what are the top 10 ingredient categories used in Belgium
+	MATCH (area:AREA {name:"Belgium"})<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
+	WITH recipe, area
+	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
+	RETURN area.name AS Area, ingredcat.name AS IngredientCategory, count(DISTINCT recipe) AS NumberOfRecipes
+	ORDER BY Area ASC, NumberOfRecipes DESC;
+	 
+	//what are the top ingredient categories used in Belgium AND the Netherlands
+	MATCH (cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
+	WHERE cuisine.name="Belgium" or cuisine.name="Netherlands"
+	WITH recipe, cuisine 
+	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
+	RETURN cuisine.name AS Cuisine, ingredcat.name AS IngredientCategory, count(DISTINCT recipe) AS NumberOfRecipes
+	ORDER BY Cuisine ASC, NumberOfRecipes DESC;
+
+	MATCH (cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
+	WHERE cuisine.name="Belgium" or cuisine.name="Netherlands"
+	WITH recipe, cuisine
+	MATCH (recipe)<-[r:IS_PART_OF]-(ingredient:INGREDIENT)-[s:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
+	RETURN cuisine, ingredcat,r,s;
+	 
+	//top 10 ingredients used in Belgium
+	MATCH (cuisine:CUISINE {name:"Belgium"})<-[:IS_FROM]-(recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)
+	RETURN cuisine.name AS Cuisine, ingredient.name AS Ingredient, count(DISTINCT recipe) AS NumberOfRecipes
+	ORDER BY Cuisine ASC, NumberOfRecipes DESC;
+	 
+	//top 10 ingredients used in Belgium and Netherlands
+	MATCH (belgium:CUISINE {name:"Belgium"})<-[:IS_FROM]-(recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2:RECIPE)-[:IS_FROM]->(netherlands:CUISINE {name:"Netherlands"})
+	RETURN ingredient.name AS Ingredient, count(DISTINCT recipe) AS NumberOfSharedRecipes
+	ORDER BY NumberOfSharedRecipes DESC,Ingredient ASC;
+	 
+	//common top 10 ingredients in recipes used in England+Scotland and Ireland
+	MATCH (uk:CUISINE {name:"English_Scottish"})<-[:IS_FROM]-(recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2:RECIPE)-[:IS_FROM]->(ireland:CUISINE {name:"Irish"})
+	RETURN ingredient.name AS Ingredient, count(DISTINCT recipe) AS NumberOfSharedRecipes
+	ORDER BY NumberOfSharedRecipes DESC,Ingredient ASC;
+	 
+	//top 10 compounds used in a Western Europe
+	MATCH (area:AREA {name:"WesternEuropean"})<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
+	WITH recipe, area
+	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)<-[:PART_OF]->(comp:COMPOUND)
+	RETURN area.name AS Area, comp.name AS Compound, count(DISTINCT recipe) AS NumberOfRecipes
+	ORDER BY Area ASC, NumberOfRecipes DESC
+	limit 20;
+
+	//find recipes with similar ingredients as "Salade Liègeoise"
+	MATCH (bacon:INGREDIENT {name:"bacon"})-[:IS_PART_OF]->(recipe:RECIPE)<-[IS_PART_OF]-(potato:INGREDIENT 
+		{name:"potato"}), (bean:INGREDIENT {name:"bean"})-[:IS_PART_OF]->(recipe) 
+	WITH recipe
+	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe)<-[IS_PART_OF]-(listofingredients:INGREDIENT)
+	RETURN area.name AS Area, cuisine.name AS Cuisine, recipe.id AS Recipe, collect(listofingredients.name) AS ListOfIngredients
+	ORDER BY Area ASC, Cuisine ASC;
+	 
+	//find recipes with similar ingredients as "Salade Liègeoise", using different types of bacon, potato and beans
+	MATCH (bacon:INGREDIENT)-[:IS_PART_OF]->(recipe:RECIPE)<-[IS_PART_OF]-(potato:INGREDIENT), (bean:INGREDIENT)-[:IS_PART_OF]->(recipe) 
+	WHERE bacon.name =~ ".*bacon.*" AND potato.name =~ ".*potato.*" AND bean.name =~ ".*bean.*"
+	WITH recipe
+	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe)<-[IS_PART_OF]-(listofingredients:INGREDIENT)
+	RETURN area.name AS Area, cuisine.name AS Cuisine, recipe.id AS Recipe, collect(listofingredients.name) AS ListOfIngredients
+	ORDER BY Area ASC, Cuisine ASC;
+
+	//find recipes with specific ingredients from different areas for visualisation in browser
+	MATCH (bacon:INGREDIENT {name:"bacon"})-[:IS_PART_OF]->(recipe:RECIPE)<-[IS_PART_OF]-(potato:INGREDIENT {name:"potato"}), (bean:INGREDIENT {name:"bean"})-[:IS_PART_OF]->(recipe) 
+	WITH recipe
+	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe)<-[IS_PART_OF]-(listofingredients:INGREDIENT)
+	RETURN area, cuisine, recipe, listofingredients;
+	 
+	//find recipes with specific ingredients from different areas for visualisation in browser - with different types of bacon, potato, beans
+	MATCH (bacon:INGREDIENT)-[:IS_PART_OF]->(recipe:RECIPE)<-[IS_PART_OF]-(potato:INGREDIENT), (bean:INGREDIENT)-[:IS_PART_OF]->(recipe) 
+	WHERE bacon.name =~ ".*bacon.*" AND potato.name =~ ".*potato.*" AND bean.name =~ ".*bean.*"
+	WITH recipe
+	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe)<-[IS_PART_OF]-(listofingredients:INGREDIENT)
+	RETURN area, cuisine, recipe, listofingredients;
+
+// 4 --------> DISTANCE METRICS
+
+RECEPIES PART:
+
+	// infredients (1,2,3,4,5,6,7,8,9,10) that share recepies with 19
+	// 19 and 10 share 525 recipes
+
+	MATCH (me:INGREDIENT{ID: 19}), (other)
+	WHERE other.ID IN [1,2,3,4,5,6,7,8,9,10]
+	OPTIONAL MATCH mutFr = (me)-[:IS_PART_OF]->(rec)<-[:IS_PART_OF]-(other)
+	RETURN DISTINCT other.name, COUNT(distinct mutFr) as M, rec.id
+
+	// specific ingredient is part of how many recepies:
+
+	MATCH (ingredient:INGREDIENT{name:'pork' })-[:IS_PART_OF]->(recipe:RECIPE)
+	WITH recipe
+	RETURN COUNT(distinct recipe.ID)
+
+	// all ingredients of a specific recipe:
+
+	MATCH (recipe:RECIPE {ID: 1000000})<-[:IS_PART_OF]-(ingredient:INGREDIENT)
+	WITH ingredient
+	RETURN ingredient.name
+
+	MATCH (recipe:RECIPE {ID: 1000000})<-[:IS_PART_OF]-(ingredient:INGREDIENT)
+	WITH ingredient
+	RETURN COUNT(distinct ingredient.name)
+
+	// all recepies and the number of ingredients of them:
+
+	MATCH (recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)
+	WITH ingredient, recipe
+	RETURN recipe.ID, COUNT(distinct ingredient.name) AS NumOfIng
+	ORDER BY NumOfIng DESC
+
+	// common ingredients of two specific recipes
+
+	MATCH (recipe:RECIPE{ ID: 1000000 }),(other)
+	WHERE other.ID IN [1000001]
+	OPTIONAL MATCH (recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(other)
+	WITH ingredient, recipe
+	RETURN count(distinct ingredient.name)
+
+	MATCH (recipe:RECIPE{ ID: 1000000 }),(other)
+	WHERE other.ID IN [1000001]
+	OPTIONAL MATCH (recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(other)
+	WITH ingredient, recipe, other
+	RETURN recipe.ID AS Recipe1, other.ID AS Recipe2, collect(ingredient.name ) AS Ingredients
+
+	// all ingredients in two specific recepies 
+
+
+	// compare one specific recipe with all others
+		// common ingredients
+
+		MATCH (recipe:RECIPE{ ID: 1000000 }),(other)
+		WHERE (other.ID >= 1000001 AND other.ID <= 1057690)
+		OPTIONAL MATCH (recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(other)
+		WITH ingredient, recipe, other 
+		RETURN other.ID, count(distinct ingredient.name)
+		ORDER BY other.ID DESC
+
+		MATCH (recipe:RECIPE{ ID: 1000000 }),(other)
+		WHERE (other.ID >= 1000001 AND other.ID <= 1057690)
+		OPTIONAL MATCH (recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(other)
+		WITH ingredient, recipe, other
+		RETURN recipe.ID AS Recipe1, other.ID AS Recipe2, collect(ingredient.name ) AS Ingredients
+		ORDER BY other.ID DESC
+
+		// all ingredients (recipe1 U recipe2)
+////////////////////////////////////////////////////////////////
+
+MATCH (recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(other)
+WITH ingredient, recipe, other, count(distinct ingredient.name) AS BANANA 
+WHERE recipe.ID = 1000000 AND (other.ID >= 1000001 AND other.ID <= 1057690) AND BANANA > 0
+RETURN other.ID, BANANA
+ORDER BY other.ID DESC
+
+MATCH (recipe)<-[:IS_PART_OF]-(ingredient)
+RETURN count(distinct ingredient.ID), count(distinct recipe.ID)
+
+///////////////////////////////////////////////////////////////
+			
+	// compare all recepies with eachother
+
+		// common ingredients
+
+		MATCH (recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)
+		WHERE (recipe2.ID >= 1000000 AND recipe2.ID <= 1000009) AND (recipe1.ID >=   1000000 AND recipe1.ID <= 1000009) AND (recipe1.ID < recipe2.ID)
+		RETURN recipe1.ID, count(distinct ingredient.name) AS MutualIngredients, recipe2.ID
+		ORDER BY recipe1.ID
+
+		// all ingredients (recipe1 U recipe2)
+
+		MATCH (recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)
+		MATCH (recipe1)<-[:IS_PART_OF]-(ingredient1:INGREDIENT)
+		MATCH (recipe2)<-[:IS_PART_OF]-(ingredient2:INGREDIENT)
+		WHERE (recipe2.ID >= 1000000 AND recipe2.ID <= 1000009) AND (recipe1.ID >=   1000000 AND recipe1.ID <= 1000009) AND (recipe1.ID < recipe2.ID)
+		RETURN recipe1.ID, count(distinct ingredient1.name) + count(distinct ingredient2.name) - count(distinct ingredient.name)  AS RecipesUnion, recipe2.ID
+		ORDER BY recipe1.ID
+
+
+		*********************************************
+		// distance between all recipes
+
+		MATCH (recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)
+		MATCH (recipe1)<-[:IS_PART_OF]-(ingredient1:INGREDIENT)
+		MATCH (recipe2)<-[:IS_PART_OF]-(ingredient2:INGREDIENT)
+		WHERE (recipe2.ID >= 1000000 AND recipe2.ID <= 1000009) AND (recipe1.ID >= 1000000 AND recipe1.ID <= 1000009) AND (recipe1.ID < recipe2.ID)
+		RETURN recipe1.ID AS C1, count(distinct ingredient1.name) + count(distinct ingredient2.name) - count(distinct ingredient.name)  AS RecipesUnion, recipe2.ID AS R2, toFloat((count(distinct ingredient.name))) / toFloat((count(distinct ingredient1.name) + count(distinct ingredient2.name) - count(distinct ingredient.name))) AS DistanceBetween
+		ORDER BY recipe1.ID
+
+		*********************************************
+		
+		
+CUISINES PART:
+	
+	// cuisines and how many recipes are in them:
+
+	MATCH (recipe)-[:IS_FROM]->(cuisine)
+	RETURN cuisine.name, count(distinct recipe.ID)
+	ORDER BY count(distinct recipe.ID) DESC
+
+	// cuisine with number of recipes and number of ingredients (sum)
+
+	MATCH (ingredient)-[:IS_PART_OF]->(recipe)-[:IS_FROM]->(cuisine)
+	WHERE cuisine.scope = "Country"
+	RETURN cuisine.name, count(distinct recipe.ID),count(distinct ingredient.ID)
+	ORDER BY count(distinct recipe.ID) DESC
+
+	// number of recepies of two specific cuisines:
+
+	MATCH (cuisine1)<-[:IS_FROM]-(recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)-[:IS_FROM]->(cuisine2)
+	WHERE cuisine1.name = 'African' AND cuisine2.name = 'Netherlands'
+	RETURN cuisine1.name, count(distinct recipe1.ID), cuisine2.name, count(distinct recipe2.ID)
+
+	// number of common ingredients between those recepies of specific cuisines:
+
+	MATCH (cuisine1)<-[:IS_FROM]-(recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)-[:IS_FROM]->(cuisine2)
+	WHERE cuisine1.name = 'African' AND cuisine2.name = 'Netherlands'
+	RETURN cuisine1.name, count(distinct recipe1.ID), cuisine2.name, count(distinct recipe2.ID), count(distinct ingredient.name) AS MutualIngreds
+	ORDER BY MutualIngreds DESC
+
+	// distance between Arican and Dutch:
+
+	MATCH (cuisine1)<-[:IS_FROM]-(recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)-[:IS_FROM]->(cuisine2)
+	MATCH (recipe1)<-[:IS_PART_OF]-(ingredient1:INGREDIENT)
+	MATCH (recipe2)<-[:IS_PART_OF]-(ingredient2:INGREDIENT)
+	WHERE cuisine1.name = 'African' AND cuisine2.name = 'Netherlands'
+	RETURN cuisine1.name, cuisine2.name, count(distinct ingredient.name) AS MutualIngreds, 	 (toFloat((count(distinct ingredient.name))) / toFloat((count(distinct ingredient1.name) + count(distinct ingredient2.name) - count(distinct ingredient.name))))/ (count(distinct recipe1.ID) * count(distinct recipe2.ID)) AS DistanceBetween 
+
+	// mutual ingredients between all cuisines:
+
+	MATCH (cuisine1)<-[:IS_FROM]-(recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)-[:IS_FROM]->(cuisine2)
+	WHERE cuisine1.ID < cuisine2.ID
+	RETURN cuisine1.name, count(distinct recipe1.ID), cuisine2.name, count(distinct recipe2.ID), count(distinct ingredient.name) AS MutualIngreds
+	ORDER BY MutualIngreds DESC
+
+	*********************************************
+
+	// distance between all cuisines:
+
+	MATCH (cuisine1)<-[:IS_FROM]-(recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)-[:IS_FROM]->(cuisine2)
+	MATCH (cuisine1)<-[:IS_FROM]-(recipe3)<-[:IS_PART_OF]-(ingredient1:INGREDIENT)
+	MATCH (cuisine2)<-[:IS_FROM]-(recipe4)<-[:IS_PART_OF]-(ingredient2:INGREDIENT)
+	WHERE cuisine1.name = "Belgium" AND cuisine2.name = "Bangladesh"
+	RETURN cuisine1.name AS C1, cuisine2.name AS C2, count(distinct ingredient.name) AS MutualIngreds,
+	(toFloat((count(distinct ingredient.name))) / toFloat((count(distinct ingredient1.name) + count(distinct ingredient2.name) - count(distinct ingredient.name
+	))))/ (count(distinct recipe3.ID) * count(distinct recipe4.ID)) AS DistanceBetween
+
+	*********************************************
+
+	// distances: country-country
+
+	MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+	WHERE cuisine1.scope = "Country" AND cuisine2.scope = "Country" AND cuisine1.name  <> cuisine2.name
+	RETURN cuisine1.name AS C1, cuisine2.name AS C2, n.value AS SIMILARITY 
+	ORDER BY C1, SIMILARITY DESC
+
+		// top 5 for all countries
+		MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+		WHERE cuisine1.name = "Turkey" AND cuisine2.scope = "Country" 
+		RETURN cuisine1.name AS C1, n.value AS SIMILARITY , cuisine2.name AS C2, n
+		ORDER BY (n.value) DESC
+		LIMIT 5
+
+
+	// distances: area-area
+
+	MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+	WHERE cuisine1.scope = "Area" AND cuisine2.scope = "Area"
+	RETURN cuisine1.name AS C1, n.value AS SIMILARITY , cuisine2.name AS C2
+	ORDER BY C1
+
+		// top 5 for all areas
+
+		MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+		WHERE cuisine1.scope = "Area" AND cuisine2.scope = "Area"
+		RETURN cuisine1.name AS C1, n.value AS SIMILARITY , cuisine2.name AS C2
+		ORDER BY C1
+		LIMIT 5
+
+	//distances: country-area
+
+	MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+	WHERE cuisine1.scope = "Country" AND cuisine2.scope = "Area"
+	RETURN cuisine1.name AS C1, n.value AS SIMILARITY , cuisine2.name AS C2
+	ORDER BY n.value DESC
+
+		// top 5 
+
+		MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+		WHERE cuisine1.scope = "Country" AND cuisine2.scope = "Area"
+		RETURN cuisine1.name AS C1, n.value AS SIMILARITY , cuisine2.name AS C2
+		ORDER BY n.value DESC
+		LIMIT 5
+
+	//distances: area-country
+
+	MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+	WHERE cuisine1.scope = "Area" AND cuisine2.scope = "CUISINE"
+	RETURN cuisine1.name AS C1, n.value AS SIMILARITY , cuisine2.name AS C2
+	ORDER BY n.value DESC
+
+		// top 5 
+
+		MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+		WHERE cuisine1.scope = "Area" AND cuisine2.scope = "Country"
+		RETURN cuisine1.name AS C1, n.value AS SIMILARITY , cuisine2.name AS C2
+		ORDER BY n.value DESC
+		LIMIT 5
+
+
+
+	**********************************************
+	---> for visualisation
+
+	//country - country
+	MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+	WHERE cuisine1.name = "Irish" AND cuisine2.scope = "Country"
+	RETURN cuisine2.name, n.value
+	ORDER BY n.value DESC
+	LIMIT 5
+
+	//area - area
+	MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+	WHERE cuisine1.name = "American" AND cuisine2.scope = "Area"
+	RETURN cuisine2.name, n.value
+	ORDER BY n.value DESC
+	LIMIT 5
+
+	//area - country
+	MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+	WHERE cuisine1.name = "American" AND cuisine2.scope = "Country"
+	RETURN cuisine2.name, n.value
+	ORDER BY n.value DESC
+	LIMIT 5
+
+	//country - area
+	MATCH (cuisine1) - [n:SIMILIARITY] - (cuisine2)
+	WHERE cuisine1.name = "American" AND cuisine2.scope = "Area"
+	RETURN cuisine2.name, n.value
+	ORDER BY n.value DESC
+	LIMIT 5
+
+	// data for .json
+
+	MATCH (ingredient)-[:IS_PART_OF]->(recipe)-[:IS_FROM]->(cuisine)
+	RETURN cuisine.name as CUISINE, cuisine.scope AS SCOPE, count(distinct(ingredient.ID)) AS NUM_ING, count(distinct(recipe.ID)) AS NUM_REC 
+	ORDER BY cuisine.name
+
+	MATCH (ingredient)-[:IS_PART_OF]->(recipe)-[:IS_FROM]->(cuisine)
+
+	MATCH (n:CUISINE) WHERE n.name = "American" SET n.name = "USA" RETURN n
+
+	MATCH (n:CUISINE) 
+	WHERE n.name = "USA"
+	SET n.country_ID = 840
+	RETURN n
+
+	MERGE (CUISINE_1{name:Japan}) MERGE (CUISINE_2{name:Pakistan}) CREATE (CUISINE_1)-[:SIMILARITY {value:0.1234}]->(CUISINE_2)
