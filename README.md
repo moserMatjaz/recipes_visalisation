@@ -1,4 +1,4 @@
-RECIPES VISUALISATION
+#RECIPES VISUALISATION
 
 Description of the repository:
   - Neo4j: all the initial raw data and Cypher queries used in the project
