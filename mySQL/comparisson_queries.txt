@@ -1,4 +1,4 @@
-1. name and ID of the most used ingredient in areas
+1. name and ID of the most used ingredient in Africa
 	
 	// Cypher:
 
@@ -88,7 +88,7 @@
 		MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA)
 		RETURN count(distinct(c.ID)),count(distinct(i.ID)),count(distinct(r.ID)),count(distinct(k.ID)),count(distinct(a.ID))
 
-	// SQL:
+	// SQL: -----------used ones
 
 		SELECT count(area.ID), count(cuisine.ID), count(ingredient.ID), count(ingredient_category.ID), count(recipe.ID)
 		FROM area, cuisine, ingredient, ingredient_category, recipes
@@ -148,7 +148,7 @@
 	WHERE ingredient.category = "alcoholic beverage" AND area.name = "SouthAsian"
 	GROUP BY area.name
 
-8. most fruity cuisine (%) !!!!!!
+8. most fruity cuisine (%) !!!!!! alll
 
 	// Cypher:
 
@@ -156,7 +156,7 @@
 	MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)
 	WITH c, i, r, k
 	MATCH (recipe)-[:IS_FROM]->(cuisine)
-	WHERE c.name = "fruit" AND k.name = "Morocco" AND cuisine.name = "Morocco"
+	WHERE c.name = "fruit" AND k.name = cuisine.name
 	RETURN toFloat(COUNT(DISTINCT(r.ID)))*100/toFloat(COUNT(DISTINCT(recipe.ID))) AS BANANA, k.name
 	ORDER BY BANANA DESC
 
@@ -279,12 +279,28 @@ SELECT count(distinct ingredient.id) # start
 
 	SELECT SUM(ingredient_category.ID) + SUM(ingredient.ID) + SUM(recipe.ID) + SUM(cuisine.ID) + SUM(area.ID) AS SUMA
 	FROM ingredient_category, ingredient, recipe, cuisine, area
-/////////////////////////////// at least 10 querries ///////////////////////////////
+
+11.how many recipes include alcohol in all areas!!!
 
 
-				1		2		3		4		5
-		  -------------------------------------------
-T(SQL)    |			|		|		|		|		|
-		  -------------------------------------------
-T(Cypher) |			|		|		|		|		|
-		  -------------------------------------------
+	// Cypher:
+
+	MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA)
+	WHERE c.name = "alcoholic beverage"
+	RETURN count(DISTINCT(r.ID)) AS BANANA, a.name
+	ORDER BY a.name
+
+	// SQL:
+
+	SELECT area.name AS BANANA, count(distinct recipe.id)
+	FROM area
+	LEFT JOIN cuisine 
+	ON area.name = cuisine.area_name
+	LEFT JOIN recipe 
+	ON recipe.cuisine = cuisine.name
+	LEFT JOIN ingred_recipe 
+	ON ingred_recipe.id_rec = recipe.id
+	LEFT JOIN ingredient 
+	ON ingredient.name = ingred_recipe.ing
+	WHERE ingredient.category = "alcoholic beverage" 
+	GROUP BY area.name
