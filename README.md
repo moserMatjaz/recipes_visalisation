@@ -8,7 +8,5 @@ Description of the repository
   -> D3: everything that we used for viualisation
 
   -> Scripts: python scripts used for similarity calculation
-
-  -> Webpage: the web page material (HTML and CSS)
   
   -> report is the overall long description of the project
