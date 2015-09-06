@@ -75,8 +75,9 @@
 	SET foreign_key_checks = 1;
 
 	// ingredient
+
 	SET foreign_key_checks = 0;
-	LOAD DATA LOCAL INFILE 'c:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/mySQL/data/INGREDIENT.csv' 
+	LOAD DATA LOCAL INFILE 'c:/.../INGREDIENT.csv' 
 	INTO TABLE ingredient
 	FIELDS TERMINATED BY ',' 
 	LINES TERMINATED BY '\n'

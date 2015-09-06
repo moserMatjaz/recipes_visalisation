@@ -186,89 +186,7 @@
 	ORDER BY PERCENTAGE DESC
 
 
-
-9. distance between two cuisines (two specific ones)
-
-	// Cypher:
-
-	MATCH (cuisine1)<-[:IS_FROM]-(recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)-[:IS_FROM]->(cuisine2)
-	MATCH (recipe1)<-[:IS_PART_OF]-(ingredient1:INGREDIENT)
-	MATCH (recipe2)<-[:IS_PART_OF]-(ingredient2:INGREDIENT)
-	WHERE cuisine1.name = 'African' AND cuisine2.name = 'Netherlands'
-	RETURN cuisine1.name, cuisine2.name, count(distinct ingredient.name) AS MutualIngreds, 	 (toFloat((count(distinct ingredient.name))) / toFloat((count(distinct ingredient1.name) + count(distinct ingredient2.name) - count(distinct ingredient.name))))/ (count(distinct recipe1.ID) * count(distinct recipe2.ID)) AS DistanceBetween 
-
-	// SQL:
-
-	SELECT count(distinct ingredient.id) # start
-	FROM cuisine
-	LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-	LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-	LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-	WHERE ingredient.id IN (SELECT count(distinct ingredient.id)
-							FROM cuisine
-							LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-							LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-							LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-							WHERE cuisine.name = "Pakistan") 
-	AND cuisine.name = "Bangladesh" # mutual ingredients
-																		/ ((SELECT count(ingredient.id) + (SELECT count(ingredient.id)
-																		FROM cuisine
-																		LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-																		LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-																		LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-																		WHERE cuisine.name = "Pakistan")
-																		FROM cuisine
-																		LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-																		LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-																		LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-																		WHERE cuisine.name = "Bangladesh")) / # union
-
-
-																		((SELECT count(recipe.id) # (r in Pakistan * r in Bangladesh)
-																		FROM cuisine 
-																		LEFT JOIN recipe ON recipe.cuisine = cuisine.name 
-																		WHERE cuisine.name = "Pakistan")*(SELECT count(recipe.id) 
-																		FROM cuisine 
-																		LEFT JOIN recipe ON recipe.cuisine = cuisine.name 
-																		WHERE cuisine.name = "Bangladesh"))
-
-
-SELECT count(distinct ingredient.id) # start
-	FROM cuisine
-	LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-	LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-	LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-	WHERE ingredient.id IN (SELECT count(distinct ingredient.id)
-							FROM cuisine
-							LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-							LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-							LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-							WHERE cuisine.name = "Pakistan") 
-	AND cuisine.name = "Bangladesh" # mutual ingredients
-																		/ ((SELECT count(ingredient.id) + (SELECT count(ingredient.id)
-																		FROM cuisine
-																		LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-																		LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-																		LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-																		WHERE cuisine.name = "Pakistan")
-																		FROM cuisine
-																		LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-																		LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-																		LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-																		WHERE cuisine.name = "Bangladesh")) / # union
-
-
-																		((SELECT count(recipe.id) # (r in Pakistan * r in Bangladesh)
-																		FROM cuisine 
-																		LEFT JOIN recipe ON recipe.cuisine = cuisine.name 
-																		WHERE cuisine.name = "Pakistan")*(SELECT count(recipe.id) 
-																		FROM cuisine 
-																		LEFT JOIN recipe ON recipe.cuisine = cuisine.name 
-																		WHERE cuisine.name = "Bangladesh"))
-										
-										
-
-10. sum all numeric values (id values)
+9. sum all numeric values (id values)
 
 	// Cypher:
 
@@ -280,7 +198,7 @@ SELECT count(distinct ingredient.id) # start
 	SELECT SUM(ingredient_category.ID) + SUM(ingredient.ID) + SUM(recipe.ID) + SUM(cuisine.ID) + SUM(area.ID) AS SUMA
 	FROM ingredient_category, ingredient, recipe, cuisine, area
 
-11.how many recipes include alcohol in all areas!!!
+10.how many recipes include alcohol in all areas!!!
 
 
 	// Cypher:
