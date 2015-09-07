@@ -501,3 +501,13 @@ CUISINES PART:
 	RETURN n
 
 	MERGE (CUISINE_1{name:Japan}) MERGE (CUISINE_2{name:Pakistan}) CREATE (CUISINE_1)-[:SIMILARITY {value:0.1234}]->(CUISINE_2)
+
+	MATCH (ingredient_category)<-[:BELONGS_TO]-(ingredient)-[:IS_PART_OF]->(recipe)-[:IS_FROM]->(cuisine)
+	WHERE cuisine.scope = "Country"
+	RETURN cuisine.name , count(distinct recipe.ID) AS recipes, count(distinct ingredient.ID) as Ings, count(distinct ingredient_category.ID) as Cats
+	ORDER BY Ings DESC
+
+	MATCH (ingredient_category)<-[:BELONGS_TO]-(ingredient)-[:IS_PART_OF]->(recipe)-[:IS_FROM]->(cuisine)
+	WHERE cuisine.scope = "Country"
+	RETURN cuisine.name , count(distinct recipe.ID) AS recipes, count(distinct ingredient.ID) as Ings, count(distinct ingredient_category.ID) as Cats
+	ORDER BY Ings DESC
