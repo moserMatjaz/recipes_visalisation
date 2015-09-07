@@ -511,3 +511,12 @@ CUISINES PART:
 	WHERE cuisine.scope = "Country"
 	RETURN cuisine.name , count(distinct recipe.ID) AS recipes, count(distinct ingredient.ID) as Ings, count(distinct ingredient_category.ID) as Cats
 	ORDER BY Ings DESC
+
+	MATCH(ingredient)-[:IS_PART_OF]->(recipe)-[:IS_FROM]->(cuisine)
+	WHERE cuisine.name IN ['Spain','Turkey','Iran','Pakistan','Bangladesh','India']
+	RETURN cuisine.name ,count(distinct ingredient.ID)
+	ORDER BY cuisine.name
+
+	MATCH (cuisine1)<-[:IS_FROM]-(recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)-[:IS_FROM]->(cuisine2)
+	WHERE cuisine1.name = 'Bangladesh' AND cuisine2.name = 'Pakistan'
+	RETURN cuisine1.name,  count(distinct ingredient.name) AS MutualIngreds
