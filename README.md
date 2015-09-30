@@ -2,16 +2,16 @@ RECIPES VISUALISATION
 =====================
 
 
-  #-> Neo4j: 
+  #Neo4j: 
 
   All the initial raw data and Cypher queries used in the project
   		- also uncluded: all the querries performed on the dataset
 
-  #-> MySQL: 
+  #MySQL: 
 
   SQL statements used to make the DB and all comparisson material + results of comparisson
 
-  #-> D3: 
+  #D3: 
 
   Everything that we used for viualisation
   		- also uncluded: external libraries:
@@ -20,13 +20,13 @@ RECIPES VISUALISATION
   						 - queue.js
   						 - jQuery.js
 
-  #-> Scripts: 
+  #Scripts: 
 
   Python scripts used for similarity calculation
   		- also uncluded: data used for calculation
   		- and raw results that were alet imported to the database
   
-  #-> REPORT 
+  #REPORT 
 
   Overall report of the project including all the details and steps taken to ontain the final result.
 
