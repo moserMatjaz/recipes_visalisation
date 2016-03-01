@@ -24,35 +24,35 @@
 
 	// ingredient categories
 
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/INGREDIENT_CATEGORY.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/INGREDIENT_CATEGORY.csv" AS csvLine
 	CREATE (ingred_cat:INGREDIENT_CATEGORY { ID:toInt(csvLine.id), name:csvLine.name});
 
 	// ingredients
 
 	USING PERIODIC COMMIT 100
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/INGREDIENT.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/INGREDIENT.csv" AS csvLine
 	CREATE (ingred:INGREDIENT { ID:toInt(csvLine.id), name:csvLine.name});
 
 	// compounds
 
 	USING PERIODIC COMMIT 100
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/COMPOUND.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/COMPOUND.csv" AS csvLine
 	CREATE (comp:COMPOUND{ID:toInt(csvLine.id),name:csvLine.name});
 
 	//cuisines
 
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/CUISINE.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/CUISINE.csv" AS csvLine
 	CREATE(cuis:CUISINE {ID:toInt(csvLine.id), name:csvLine.name, scope:csvLine.scope});
 
 	//recipes
 
 	USING PERIODIC COMMIT 1000
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/RECIPES.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/RECIPES.csv" AS csvLine
 	CREATE(rec:RECIPE {ID:toInt(csvLine.id), source:csvLine.source, cuisine:csvLine.cuisine});
 
 	//areas
 
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/AREA.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/AREA.csv" AS csvLine
 	CREATE (ar:AREA{ID:toInt(csvLine.id),name:csvLine.name});
 
 // 2 --------> CREATING REALTIONSHIPS 
@@ -60,7 +60,7 @@
 	//compound part of ingredient
  
  	USING PERIODIC COMMIT 1000
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/ingred_has_compound.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/ingred_has_compound.csv" AS csvLine
 	MERGE(comp:COMPOUND{ID:toInt(csvLine.compound_id)})
 	MERGE(ingred:INGREDIENT{ID:toInt(csvLine.ingredient_id)})
 	CREATE(comp)-[:PART_OF]->(ingred)
@@ -68,7 +68,7 @@
 	// ingredient BELONGS TO category
 
 	USING PERIODIC COMMIT 1000
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/ingred_belongsto_ingredcat.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/ingred_belongsto_ingredcat.csv" AS csvLine
 	MERGE (ingred:INGREDIENT { name:csvLine.ingredient_name})
 	MERGE (ingred_cat:INGREDIENT_CATEGORY {name:csvLine.ingredientcategory_name})
 	CREATE (ingred)-[:BELONGS_TO]->(ingred_cat)
@@ -76,7 +76,7 @@
 	// ingredient IS PART OF recipe
 
 	USING PERIODIC COMMIT 1000
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/ingred_partof_recipe.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/ingred_partof_recipe.csv" AS csvLine
 	MERGE (ingred:INGREDIENT {name:csvLine.ingredient_name})
 	MERGE (rec:RECIPE {ID:toInt(csvLine.recipe_id)})
 	CREATE (ingred)-[:IS_PART_OF]->(rec)
@@ -84,7 +84,7 @@
 	// cuisine ORIGINATES FROM area
 
 	USING PERIODIC COMMIT 1000
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/cuisine_locatedin_area.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/cuisine_locatedin_area.csv" AS csvLine
 	MERGE(cuis:CUISINE{name:csvLine.cuisine_name})
 	MERGE(ar:AREA {name:csvLine.area_name})
 	CREATE (cuis)-[:ORIGINATES_FROM]->(ar)
@@ -92,7 +92,7 @@
 	// recipe IS FROM cuisine
 
 	USING PERIODIC COMMIT 1000
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/RECIPES.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/RECIPES.csv" AS csvLine
 	MERGE(cuis:CUISINE{name:csvLine.cuisine})
 	MERGE (rec:RECIPE {ID:toInt(csvLine.id)})
 	CREATE (rec)-[:IS_FROM ]->(cuis)
@@ -100,127 +100,12 @@
 	// adding similarities to cuisines
 
 	USING PERIODIC COMMIT 1000
-	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/Neo4j/cuisines_similarities.csv" AS csvLine
+	LOAD CSV WITH HEADERS FROM "file:/Users/Matjaz Moser/Dropbox/SABANCI/summer project/recipes_visalisation/Neo4j/data/cuisines_similarities.csv" AS csvLine
 	MERGE(cuis_source:CUISINE{name:csvLine.source})
 	MERGE(cuis_target:CUISINE{name:csvLine.target})
 	CREATE (cuis_source)-[:SIMILIARITY {value:toFloat(csvLine.value)}]->(cuis_target)
 
-
-// 3 --------> QUERRYING THE DATABASE (from the blog)
-
-	//number of nodes (descending order)
-	MATCH (n) RETURN DISTINCT labels(n) AS NODE_TYPE, count(n) AS Number
-	ORDER by Number DESC;
- 
-	// relationships and types of them
-	MATCH (a)-[r]->(b)
-	RETURN DISTINCT head(labels(a)) AS This, type(r) AS To, head(labels(b)) AS That
-	LIMIT 100;
-	 
-	//number of recepies in different areas 
-	MATCH (area:AREA)<-[:LOCATED_IN]-(cuisine:CUISINE)<-[:OF_CUISINE]-(recipe:RECIPE)
-	RETURN area.name AS Area, count(DISTINCT recipe) AS NumberOfRecipes
-	ORDER BY NumberOfRecipes DESC;
-	 
-	//occurences of ingredient categories in recepis (count the number of occurances)
-	MATCH (recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
-	RETURN ingredcat.name AS Category, count(DISTINCT recipe) AS Recipes
-	ORDER BY Recipes DESC;
-	 
-	//areas and how many recepies use ingedinets from ingredient categories
-	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
-	WITH recipe, area
-	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
-	RETURN area.name AS Area, ingredcat.name AS IngredientCategory, count(DISTINCT recipe) AS NumberOfRecipes
-	ORDER BY NumberOfRecipes DESC;
-
-	//what are the top 10 ingredient categories used in a Western Europe
-	MATCH (area:AREA {name:"WesternEuropean"})<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
-	WITH recipe, area
-	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
-	RETURN area.name AS Area, ingredcat.name AS Ingredient, count(DISTINCT recipe) AS NumberOfRecipes
-	ORDER BY Area ASC, NumberOfRecipes DESC;
-	 
-	//How many recipes do we have for Belgian cuisine
-	MATCH (cuisine:CUISINE {name:"Belgium"})<-[:IS_FROM]-(recipe:RECIPE) return count(recipe);
-
-	//How many recipes do we have for Dutch cuisine
-	MATCH (cuisine:CUISINE {name:"Netherlands"})<-[:IS_FROM]-(recipe:RECIPE) return count(recipe)
-	 
-	//what are the top 10 ingredient categories used in Belgium
-	MATCH (area:AREA {name:"Belgium"})<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
-	WITH recipe, area
-	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
-	RETURN area.name AS Area, ingredcat.name AS IngredientCategory, count(DISTINCT recipe) AS NumberOfRecipes
-	ORDER BY Area ASC, NumberOfRecipes DESC;
-	 
-	//what are the top ingredient categories used in Belgium AND the Netherlands
-	MATCH (cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
-	WHERE cuisine.name="Belgium" or cuisine.name="Netherlands"
-	WITH recipe, cuisine 
-	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
-	RETURN cuisine.name AS Cuisine, ingredcat.name AS IngredientCategory, count(DISTINCT recipe) AS NumberOfRecipes
-	ORDER BY Cuisine ASC, NumberOfRecipes DESC;
-
-	MATCH (cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
-	WHERE cuisine.name="Belgium" or cuisine.name="Netherlands"
-	WITH recipe, cuisine
-	MATCH (recipe)<-[r:IS_PART_OF]-(ingredient:INGREDIENT)-[s:BELONGS_TO]->(ingredcat:INGREDIENT_CATEGORY)
-	RETURN cuisine, ingredcat,r,s;
-	 
-	//top 10 ingredients used in Belgium
-	MATCH (cuisine:CUISINE {name:"Belgium"})<-[:IS_FROM]-(recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)
-	RETURN cuisine.name AS Cuisine, ingredient.name AS Ingredient, count(DISTINCT recipe) AS NumberOfRecipes
-	ORDER BY Cuisine ASC, NumberOfRecipes DESC;
-	 
-	//top 10 ingredients used in Belgium and Netherlands
-	MATCH (belgium:CUISINE {name:"Belgium"})<-[:IS_FROM]-(recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2:RECIPE)-[:IS_FROM]->(netherlands:CUISINE {name:"Netherlands"})
-	RETURN ingredient.name AS Ingredient, count(DISTINCT recipe) AS NumberOfSharedRecipes
-	ORDER BY NumberOfSharedRecipes DESC,Ingredient ASC;
-	 
-	//common top 10 ingredients in recipes used in England+Scotland and Ireland
-	MATCH (uk:CUISINE {name:"English_Scottish"})<-[:IS_FROM]-(recipe:RECIPE)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2:RECIPE)-[:IS_FROM]->(ireland:CUISINE {name:"Irish"})
-	RETURN ingredient.name AS Ingredient, count(DISTINCT recipe) AS NumberOfSharedRecipes
-	ORDER BY NumberOfSharedRecipes DESC,Ingredient ASC;
-	 
-	//top 10 compounds used in a Western Europe
-	MATCH (area:AREA {name:"WesternEuropean"})<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe:RECIPE)
-	WITH recipe, area
-	MATCH (recipe)<-[:IS_PART_OF]-(ingredient:INGREDIENT)<-[:PART_OF]->(comp:COMPOUND)
-	RETURN area.name AS Area, comp.name AS Compound, count(DISTINCT recipe) AS NumberOfRecipes
-	ORDER BY Area ASC, NumberOfRecipes DESC
-	limit 20;
-
-	//find recipes with similar ingredients as "Salade Liègeoise"
-	MATCH (bacon:INGREDIENT {name:"bacon"})-[:IS_PART_OF]->(recipe:RECIPE)<-[IS_PART_OF]-(potato:INGREDIENT 
-		{name:"potato"}), (bean:INGREDIENT {name:"bean"})-[:IS_PART_OF]->(recipe) 
-	WITH recipe
-	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe)<-[IS_PART_OF]-(listofingredients:INGREDIENT)
-	RETURN area.name AS Area, cuisine.name AS Cuisine, recipe.id AS Recipe, collect(listofingredients.name) AS ListOfIngredients
-	ORDER BY Area ASC, Cuisine ASC;
-	 
-	//find recipes with similar ingredients as "Salade Liègeoise", using different types of bacon, potato and beans
-	MATCH (bacon:INGREDIENT)-[:IS_PART_OF]->(recipe:RECIPE)<-[IS_PART_OF]-(potato:INGREDIENT), (bean:INGREDIENT)-[:IS_PART_OF]->(recipe) 
-	WHERE bacon.name =~ ".*bacon.*" AND potato.name =~ ".*potato.*" AND bean.name =~ ".*bean.*"
-	WITH recipe
-	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe)<-[IS_PART_OF]-(listofingredients:INGREDIENT)
-	RETURN area.name AS Area, cuisine.name AS Cuisine, recipe.id AS Recipe, collect(listofingredients.name) AS ListOfIngredients
-	ORDER BY Area ASC, Cuisine ASC;
-
-	//find recipes with specific ingredients from different areas for visualisation in browser
-	MATCH (bacon:INGREDIENT {name:"bacon"})-[:IS_PART_OF]->(recipe:RECIPE)<-[IS_PART_OF]-(potato:INGREDIENT {name:"potato"}), (bean:INGREDIENT {name:"bean"})-[:IS_PART_OF]->(recipe) 
-	WITH recipe
-	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe)<-[IS_PART_OF]-(listofingredients:INGREDIENT)
-	RETURN area, cuisine, recipe, listofingredients;
-	 
-	//find recipes with specific ingredients from different areas for visualisation in browser - with different types of bacon, potato, beans
-	MATCH (bacon:INGREDIENT)-[:IS_PART_OF]->(recipe:RECIPE)<-[IS_PART_OF]-(potato:INGREDIENT), (bean:INGREDIENT)-[:IS_PART_OF]->(recipe) 
-	WHERE bacon.name =~ ".*bacon.*" AND potato.name =~ ".*potato.*" AND bean.name =~ ".*bean.*"
-	WITH recipe
-	MATCH (area:AREA)<-[:ORIGINATES_FROM]-(cuisine:CUISINE)<-[:IS_FROM]-(recipe)<-[IS_PART_OF]-(listofingredients:INGREDIENT)
-	RETURN area, cuisine, recipe, listofingredients;
-
-// 4 --------> DISTANCE METRICS
+// 3 --------> DISTANCE METRICS
 
 RECEPIES PART:
 
@@ -510,7 +395,7 @@ CUISINES PART:
 	MATCH (ingredient_category)<-[:BELONGS_TO]-(ingredient)-[:IS_PART_OF]->(recipe)-[:IS_FROM]->(cuisine)
 	WHERE cuisine.scope = "Country"
 	RETURN cuisine.name , count(distinct recipe.ID) AS recipes, count(distinct ingredient.ID) as Ings, count(distinct ingredient_category.ID) as Cats
-	ORDER BY Ings DESC
+	ORDER BY cuisine.name DESC
 
 	MATCH(ingredient)-[:IS_PART_OF]->(recipe)-[:IS_FROM]->(cuisine)
 	WHERE cuisine.name IN ['Spain','Turkey','Iran','Pakistan','Bangladesh','India']
@@ -520,3 +405,4 @@ CUISINES PART:
 	MATCH (cuisine1)<-[:IS_FROM]-(recipe1)<-[:IS_PART_OF]-(ingredient:INGREDIENT)-[:IS_PART_OF]->(recipe2)-[:IS_FROM]->(cuisine2)
 	WHERE cuisine1.name = 'Bangladesh' AND cuisine2.name = 'Pakistan'
 	RETURN cuisine1.name,  count(distinct ingredient.name) AS MutualIngreds
+

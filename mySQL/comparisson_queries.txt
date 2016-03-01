@@ -1,224 +1,144 @@
 1. name and ID of the most used ingredient in Africa
-	
-	// Cypher:
 
-		MATCH (i:INGREDIENT)-[n:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(c:CUISINE)-[:ORIGINATES_FROM]->(a:AREA)
-		WHERE a.name = "African"
-		RETURN a.name as AREA_NAME,i.name, count(n) AS OCCURANCES
-		ORDER BY OCCURANCES DESC
-		LIMIT 1
+Cypher:
 
-	// SQL:
+MATCH (i:INGREDIENT)-[n:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(c:CUISINE)-[:ORIGINATES_FROM]->(a:AREA) WHERE a.name = "African"RETURN a.name as AREA_NAME,i.name, count(n) AS OCCURANCES ORDER BY OCCURANCES DESC LIMIT 1
 
-		SELECT area.name, ingredient.name, count(ingredient.id) AS COUNT
-		FROM area
-		LEFT JOIN cuisine ON area.name = cuisine.area_name
-		LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-		LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-		LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-		WHERE area.name = "African" AND cuisine.area_name = "African"
-		GROUP BY ingredient.id
-		ORDER BY COUNT DESC
-		LIMIT 1	
+SQL:
+
+SELECT area.name, ingredient.name, count(ingredient.id) AS COUNT FROM area LEFT JOIN cuisine ON area.name = cuisine.area_name LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing WHERE area.name = "African" AND cuisine.area_name = "African"GROUP BY ingredient.id ORDER BY COUNT DESC LIMIT 1
+
+HIVE:
+
+SELECT ingredient.name, count(ingredient.id) AS COUNT_OF FROM area JOIN cuisine ON area.name = cuisine.area JOIN recipe ON recipe.cuisine = cuisine.name JOIN part_of ON part_of.id_recipe = recipe.id JOIN ingredient ON ingredient.name = part_of.ingredient WHERE area.name ='African'GROUP BY ingredient.name ORDER BY COUNT_OF DESC LIMIT 1;
 
 2. areas and number of recipes in them + total number of ingredients in those recipes + number of cuisines in those areas
 
-	// Cypher:
+Cypher:
 
-		MATCH (i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(c:CUISINE)-[:ORIGINATES_FROM]->(a:AREA)
-		RETURN a.name AS AREA_NAME, count(distinct(i.ID)) AS INGREDIENTS, count(distinct(r.ID)) AS RECIPES, count(distinct(c.ID)) AS CUISINES
-		ORDER BY AREA_NAME
+MATCH (i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(c:CUISINE)-[:ORIGINATES_FROM]->(a:AREA) RETURN a.name AS AREA_NAME, count(distinct(i.ID)) AS INGREDIENTS, count(distinct(r.ID)) AS RECIPES, count(distinct(c.ID)) AS CUISINES ORDER BY AREA_NAME
 
-	// SQL:
+SQL:
 
-		SELECT area.name, count(distinct cuisine.id), count(distinct recipe.id), count(distinct ingred_recipe.ing) 
-		FROM area 
-		LEFT JOIN cuisine ON area.name = cuisine.area_name 
-		LEFT JOIN recipe ON recipe.cuisine = cuisine.name 
-		LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id 
-		GROUP BY area.name
+SELECT area.name, count(distinct cuisine.id), count(distinct recipe.id), count(distinct ingred_recipe.ing) FROM area LEFT JOIN cuisine ON area.name = cuisine.area_name LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id GROUP BY area.name
 
+HIVE:
+
+SELECT area.name, count(distinct cuisine.id), count(distinct recipe.id), count(distinct part_of.ingredient) FROM area JOIN cuisine ON area.name = cuisine.area JOIN recipe ON recipe.cuisine = cuisine.name JOIN part_of ON part_of.id_recipe = recipe.id GROUP BY area.name;
 
 3. top five cusines (ID and name, scope) for Israel
 
-	// Cypher:
+Cypher:
 
-		MATCH (c1:CUISINE) - [n:SIMILIARITY] - (c2:CUISINE)
-		WHERE c1.name = "Israel" AND c2.scope = "Country"
-		RETURN c2.name, n.value
-		ORDER BY n.value DESC
-		LIMIT 5
+MATCH (c1:CUISINE) - [n:SIMILIARITY] - (c2:CUISINE) WHERE c1.name = "Israel" AND c2.scope = "Country"RETURN c2.name, n.value ORDER BY n.value DESC LIMIT 5
 
-	// SQL:
+SQL:
 
-		SELECT cuisine.ID, similarity.cuisine_2, cuisine.scope, similarity.value 
-		FROM similarity 
-		LEFT JOIN cuisine ON similarity.cuisine_2 = cuisine.name 
-		WHERE similarity.cuisine_1 = "Israel" AND cuisine.scope = "Country"
-		ORDER BY similarity.value DESC
-		LIMIT 5
+SELECT cuisine.ID, similarity.cuisine_2, cuisine.scope, similarity.value FROM similarity LEFT JOIN cuisine ON similarity.cuisine_2 = cuisine.name WHERE similarity.cuisine_1 = "Israel" AND cuisine.scope = "Country" ORDER BY similarity.value DESC LIMIT 5
+
+HIVE:
+
+SELECT cuisine.ID, similarity.cuisine_2, cuisine.scope, similarity.value FROM similarity JOIN cuisine ON similarity.cuisine_2 = cuisine.name WHERE similarity.cuisine_1 = 'Israel' AND cuisine.scope = 'Country' ORDER BY similarity.value DESC LIMIT 5;
 
 4. mutual ingredients between two cuisines (Bangladesh and PAKISTAN) and their similarity
 
-	// Cypher:
+Cypher:
 
-		MATCH (c1:CUISINE)<-[:IS_FROM]-(r1:RECIPE)<-[:IS_PART_OF]-(i:INGREDIENT)-[:IS_PART_OF]->(r2:RECIPE)-[:IS_FROM]->(c2:CUISINE)
-		WHERE c1.name = 'Bangladesh' AND c2.name = 'Pakistan'
-		RETURN c1.name AS C1, c2.name AS C2, count(distinct(i.name)) AS MUTUAL
+MATCH (c1:CUISINE)<-[:IS_FROM]-(r1:RECIPE)<-[:IS_PART_OF]-(i:INGREDIENT)-[:IS_PART_OF]->(r2:RECIPE)-[:IS_FROM]->(c2:CUISINE) WHERE c1.name = 'Bangladesh' AND c2.name = 'Pakistan'RETURN c1.name AS C1, c2.name AS C2, count(distinct(i.name)) AS MUTUAL
 
-	// SQL:
+SQL:
 
-		SELECT DISTINCT ingredient.id, ingredient.name
-		FROM cuisine
-		LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-		LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-		LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-		WHERE ingredient.id IN (SELECT DISTINCT ingredient.id
-								FROM cuisine
-								LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-								LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-								LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-								WHERE cuisine.name = "Pakistan"
-		) AND cuisine.name = "Bangladesh" 
+SELECT DISTINCT ingredient.id, ingredient.name FROM cuisine LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing WHERE ingredient.id IN (SELECT DISTINCT ingredient.id FROM cuisine LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing WHERE cuisine.name = "Pakistan") AND cuisine.name = "Bangladesh"
+
+HIVE:
+
+SELECT DISTINCT ingredient.id, ingredient.name FROM cuisine JOIN recipe ON recipe.cuisine = cuisine.name JOIN part_of ON part_of.id_recipe = recipe.id JOIN ingredient ON ingredient.name = part_of.ingredient WHERE ingredient.id IN (SELECT ingredient.id FROM cuisine c JOIN recipe ON recipe.cuisine = c.name JOIN part_of ON part_of.id_recipe = recipe.id JOIN ingredient ON ingredient.name = part_of.ingredient WHERE c.name = 'Pakistan') AND cuisine.name = 'Bangladesh';
 
 5. count all 
 
-	// Cypher:
+Cypher:
 
-		MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA)
-		RETURN count(distinct(c.ID)),count(distinct(i.ID)),count(distinct(r.ID)),count(distinct(k.ID)),count(distinct(a.ID))
+MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA) 
+RETURN count(distinct(c.ID)) + count(distinct(i.ID)) + count(distinct(r.ID)) + count(distinct(k.ID)) + count(distinct(a.ID))
 
-	// SQL: -----------used ones
+SQL: 
 
-		SELECT count(area.ID), count(cuisine.ID), count(ingredient.ID), count(ingredient_category.ID), count(recipe.ID)
-		FROM area, cuisine, ingredient, ingredient_category, recipes
+SELECT count(*) FROM area LEFT JOIN cuisine ON area.name = cuisine.area_name LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing;
+
+HIVE:
+
+SELECT COUNT(*) FROM area JOIN cuisine ON area.name = cuisine.area JOIN recipe ON recipe.cuisine = cuisine.name JOIN part_of ON part_of.id_recipe = recipe.id JOIN ingredient ON ingredient.name = part_of.ingredient;
 
 6. number of ingredient categories in areas
-	
-	// Cypher
 
-	MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA)
-	RETURN COUNT(DISTINCT(c.ID)), a.name
-	ORDER BY a.name
+Cypher
 
-	// SQL:
+MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA) RETURN COUNT(DISTINCT(c.ID)), a.name ORDER BY a.name
 
-	SELECT area.name, count(distinct ingredient.category)
-	FROM area
-	LEFT JOIN cuisine ON area.name = cuisine.area_name
-	LEFT JOIN recipe ON recipe.cuisine = cuisine.name
-	LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id
-	LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing
-	GROUP BY area.name
+SQL:
+
+SELECT area.name, count(distinct ingredient.category) FROM area LEFT JOIN cuisine ON area.name = cuisine.area_name LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing GROUP BY area.name
+
+HIVE:
+
+SELECT area.name, count(distinct ingredient.category) FROM area JOIN cuisine ON area.name = cuisine.area JOIN recipe ON recipe.cuisine = cuisine.name JOIN part_of ON part_of.id_recipe = recipe.id JOIN ingredient ON ingredient.name = part_of.ingredient GROUP BY area.name;
 
 7. how many recipes include alcohol in area(%) !!!
 
-	// Cypher:
+Cypher:
 
-	MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA)
-	WITH c, i, r, k, a
-	MATCH (recipe)-[:IS_FROM]->(cuisine)-[:ORIGINATES_FROM]->(area)
-	WHERE c.name = "alcoholic beverage" AND a.name = "SouthAsian" AND area.name = "SouthAsian"
-	RETURN toFloat(COUNT(DISTINCT(r.ID)))*100/toFloat(COUNT(DISTINCT(recipe.ID))) AS BANANA, a.name
+MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA) WITH c, i, r, k, a MATCH (recipe)-[:IS_FROM]->(cuisine)-[:ORIGINATES_FROM]->(area) WHERE c.name = "alcoholic beverage" AND a.name = "SouthAsian" AND area.name = "SouthAsian"RETURN toFloat(COUNT(DISTINCT(r.ID)))*100/toFloat(COUNT(DISTINCT(recipe.ID))) AS BANANA, a.name
 
-	// SQL:
+SQL:
 
-	SELECT area.name AS BANANA, count(distinct recipe.id)*100/ ( 
-	SELECT count(distinct recipe.id)
-	FROM area
-	LEFT JOIN cuisine 
-	ON area.name = cuisine.area_name
-	LEFT JOIN recipe 	
-	ON recipe.cuisine = cuisine.name
-	LEFT JOIN ingred_recipe 
-	ON ingred_recipe.id_rec = recipe.id
-	LEFT JOIN ingredient 
-	ON ingredient.name = ingred_recipe.ing
-	WHERE area.name = "SouthAsian"
-	GROUP BY area.name) AS PERCENTAGE
-	FROM area
-	LEFT JOIN cuisine 
-	ON area.name = cuisine.area_name
-	LEFT JOIN recipe 
-	ON recipe.cuisine = cuisine.name
-	LEFT JOIN ingred_recipe 
-	ON ingred_recipe.id_rec = recipe.id
-	LEFT JOIN ingredient 
-	ON ingredient.name = ingred_recipe.ing
-	WHERE ingredient.category = "alcoholic beverage" AND area.name = "SouthAsian"
-	GROUP BY area.name
+SELECT area.name AS BANANA, count(distinct recipe.id)*100/ (SELECT count(distinct recipe.id) FROM area LEFT JOIN cuisine ON area.name = cuisine.area_name LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing WHERE area.name = "SouthAsian"GROUP BY area.name) AS PERCENTAGE FROM area LEFT JOIN cuisine ON area.name = cuisine.area_name LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing WHERE ingredient.category = "alcoholic beverage" AND area.name = "SouthAsian" GROUP BY area.name
+
+HIVE:
+
+SELECT area.name, SUM( IF(ingredient.category == 'alcoholicbeverage',1,0))/count(distinct recipe.id) * 100 FROM area JOIN cuisine ON area.name = cuisine.area JOIN recipe ON recipe.cuisine = cuisine.name JOIN part_of ON part_of.id_recipe = recipe.id JOIN ingredient ON ingredient.name = part_of.ingredient WHERE area.name = 'SouthAsian'GROUP BY area.name;
 
 8. most fruity cuisine (%) !!!!!! alll
 
-	// Cypher:
+Cypher:
 
-	
-	MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)
-	WITH c, i, r, k
-	MATCH (recipe)-[:IS_FROM]->(cuisine)
-	WHERE c.name = "fruit" AND k.name = cuisine.name
-	RETURN toFloat(COUNT(DISTINCT(r.ID)))*100/toFloat(COUNT(DISTINCT(recipe.ID))) AS BANANA, k.name
-	ORDER BY BANANA DESC
+MATCH (recipe)-[:IS_FROM]->(cuisine), (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE) 
+WHERE c.name = "fruit" AND k.name = cuisine.name
+RETURN toFloat(COUNT(DISTINCT(r.ID)))*100/toFloat(COUNT(DISTINCT(recipe.ID))) AS BANANA, k.name ORDER BY BANANA DESC
 
+SQL:
 
-	// SQL:
+SELECT cuisine.name AS BANANA, count(distinct recipe.id)*100/ (SELECT count(distinct recipe.id) FROM cuisine LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing WHERE cuisine.name = BANANA GROUP BY cuisine.name) AS PERCENTAGE FROM cuisine LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing WHERE ingredient.category = "fruit" GROUP BY cuisine.name ORDER BY PERCENTAGE DESC;
 
-	SELECT cuisine.name AS BANANA, count(distinct recipe.id)*100/ (
-	SELECT count(distinct recipe.id)
-	FROM cuisine
-	LEFT JOIN recipe 
-	ON recipe.cuisine = cuisine.name
-	LEFT JOIN ingred_recipe 
-	ON ingred_recipe.id_rec = recipe.id
-	LEFT JOIN ingredient 
-	ON ingredient.name = ingred_recipe.ing
-	WHERE cuisine.name = BANANA
-	GROUP BY cuisine.name) AS PERCENTAGE
-	FROM cuisine
-	LEFT JOIN recipe 
-	ON recipe.cuisine = cuisine.name
-	LEFT JOIN ingred_recipe 
-	ON ingred_recipe.id_rec = recipe.id
-	LEFT JOIN ingredient 
-	ON ingredient.name = ingred_recipe.ing
-	WHERE ingredient.category = "fruit"
-	GROUP BY cuisine.name
-	ORDER BY PERCENTAGE DESC
+HIVE:
 
+SELECT cuisine.name, SUM( IF(ingredient.category == 'fruit',1,0))/count(distinct recipe.id) * 100 AS PERC FROM cuisine JOIN recipe ON recipe.cuisine = cuisine.name JOIN part_of ON part_of.id_recipe = recipe.id JOIN ingredient ON ingredient.name = part_of.ingredient GROUP BY cuisine.name ORDER BY PERC DESC;
 
 9. sum all numeric values (id values)
 
-	// Cypher:
+Cypher:
 
-	MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA)
-	RETURN SUM(c.ID) + SUM(i.ID) + SUM(r.ID) + SUM(k.ID) + SUM(a.ID) AS SUMA
+MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA) RETURN SUM(c.ID) + SUM(i.ID) + SUM(r.ID) + SUM(k.ID) + SUM(a.ID) AS SUMA
 
-	// SQL:
+SQL:
 
-	SELECT SUM(ingredient_category.ID) + SUM(ingredient.ID) + SUM(recipe.ID) + SUM(cuisine.ID) + SUM(area.ID) AS SUMA
-	FROM ingredient_category, ingredient, recipe, cuisine, area
+SELECT SUM(ingredient_category.ID) + (SELECT SUM(ingredient.ID) FROM ingredient) + (SELECT SUM(recipe.ID) FROM recipe) + (SELECT SUM(cuisine.ID) FROM cuisine) + (SELECT SUM(area.ID) from area) FROM ingredient_category;
+
+HIVE:
+
+SELECT SUM(area.id) + SUM(cuisine.id) + SUM(recipe.id) + SUM(part_of.id_recipe) + SUM(ingredient.id) FROM area JOIN cuisine ON area.name = cuisine.area JOIN recipe ON recipe.cuisine = cuisine.name JOIN part_of ON part_of.id_recipe = recipe.id JOIN ingredient ON ingredient.name = part_of.ingredient;
+
 
 10.how many recipes include alcohol in all areas!!!
 
 
-	// Cypher:
+Cypher:
 
-	MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA)
-	WHERE c.name = "alcoholic beverage"
-	RETURN count(DISTINCT(r.ID)) AS BANANA, a.name
-	ORDER BY a.name
+MATCH (c:INGREDIENT_CATEGORY)<-[:BELONGS_TO]-(i:INGREDIENT)-[:IS_PART_OF]->(r:RECIPE)-[:IS_FROM]->(k:CUISINE)-[:ORIGINATES_FROM]->(a:AREA) WHERE c.name = "alcoholic beverage"RETURN count(DISTINCT(r.ID)) AS BANANA, a.name ORDER BY a.name
 
-	// SQL:
+SQL:
 
-	SELECT area.name AS BANANA, count(distinct recipe.id)
-	FROM area
-	LEFT JOIN cuisine 
-	ON area.name = cuisine.area_name
-	LEFT JOIN recipe 
-	ON recipe.cuisine = cuisine.name
-	LEFT JOIN ingred_recipe 
-	ON ingred_recipe.id_rec = recipe.id
-	LEFT JOIN ingredient 
-	ON ingredient.name = ingred_recipe.ing
-	WHERE ingredient.category = "alcoholic beverage" 
-	GROUP BY area.name
+SELECT area.name AS BANANA, count(distinct recipe.id) FROM area LEFT JOIN cuisine ON area.name = cuisine.area_name LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN ingred_recipe ON ingred_recipe.id_rec = recipe.id LEFT JOIN ingredient ON ingredient.name = ingred_recipe.ing WHERE ingredient.category = "alcoholic beverage" GROUP BY area.name
+
+HIVE:
+
+SELECT area.name, count(distinct recipe.id) FROM area LEFT JOIN cuisine ON area.name = cuisine.area LEFT JOIN recipe ON recipe.cuisine = cuisine.name LEFT JOIN part_of ON part_of.id_recipe = recipe.id LEFT JOIN ingredient ON ingredient.name = part_of.ingredient WHERE ingredient.category = "alcoholicbeverage" GROUP BY area.name;

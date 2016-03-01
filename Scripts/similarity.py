@@ -49,7 +49,6 @@ def calculator(RECIPE_INDEXES_ARRAY_CUISINE_1, ALL_RECIPES_ARRAY_CUISINE_1, RECI
     if cuisine_1 != cuisine_2:
         output_file = open('cuisines_distances_final_run.txt', 'a')
         
-        
         RECIPE_INDEXES_ARRAY_CUISINE_1.remove(0)
         RECIPE_INDEXES_ARRAY_CUISINE_2.remove(0)
         
